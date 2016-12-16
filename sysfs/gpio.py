@@ -32,7 +32,6 @@ import errno
 import os
 import select
 
-from twisted.internet import reactor
 
 import logging
 
@@ -242,11 +241,7 @@ class Controller(object):
             instance._available_pins = []
             instance._running = True
 
-            # Cleanup before stopping reactor
-            reactor.addSystemEventTrigger('before', 'shutdown', instance.stop)
 
-            # Run the EPoll in a Thread, as it blocks.
-            reactor.callInThread(instance._poll_queue_loop)
 
             cls._instance = instance
         return cls._instance
@@ -254,17 +249,6 @@ class Controller(object):
     def __init__(self):
         pass
 
-    def _poll_queue_loop(self):
-
-        while self._running:
-            try:
-                events = self._poll_queue.poll(EPOLL_TIMEOUT)
-            except IOError as error:
-                if error.errno != errno.EINTR:
-                    Logger.error(repr(error))
-                    reactor.stop()
-            if len(events) > 0:
-                reactor.callFromThread(self._poll_queue_event, events)
 
     @property
     def available_pins(self):
